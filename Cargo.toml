@@ -1,0 +1,13 @@
+[package]
+name = "lightlog"
+version = "0.1.0"
+authors = ["WeirdPtr <WeirdPtr@WeirdPtr.com>"]
+description = "Basic Rust logging"
+edition = "2021"
+license = "MIT"
+repository = "https://github.com/WeirdPtr/lightlog"
+keywords = ["log", "logging"]
+
+[dependencies]
+chrono = "0.4.19"
+colored = "2.0.0"
