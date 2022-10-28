@@ -31,7 +31,7 @@
 ### Usage
 
 ```rust
-let logger: Logger = Logger::default();
+let mut logger: Logger = Logger::default();
 
 // Logging Levels are None, Full, Info, Warning, Error
 // Default is Full
