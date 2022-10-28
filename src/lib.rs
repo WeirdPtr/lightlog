@@ -1,12 +1,15 @@
+use std::ops::Add;
+
 use chrono;
 use colored::Colorize;
 
 #[derive(Debug)]
 pub enum LoggingLevel {
-    Full = 0,
-    Info = 1,
-    Warning = 2,
-    Error = 3,
+    None = 0,
+    Full = 1,
+    Info = 2,
+    Warning = 3,
+    Error = 4,
 }
 
 #[derive(Debug)]
@@ -45,6 +48,9 @@ impl Logger {
         use LoggingLevel::*;
 
         match level {
+            None => {
+                self.log_level = None;
+            }
             Full => {
                 self.log_level = Full;
             }
@@ -67,7 +73,13 @@ impl Logger {
         self.default_origin = default_origin.into();
     }
 
-    fn get_log_msg<T>(&self, log_prefix: &str, msg: T, log_origin: String) -> String
+    fn get_log_msg<T>(
+        &self,
+        log_prefix: &str,
+        msg: T,
+        log_origin: String,
+        insert_whitespaces: i32,
+    ) -> String
     where
         T: Into<String>,
     {
@@ -75,11 +87,10 @@ impl Logger {
 
         let date = timestamp.date().to_string().replace("UTC", "");
         let time = timestamp.time().format("%H:%M:%S").to_string();
-
-        let colored_log_prefix = match log_prefix {
+        let mut colored_log_prefix = match log_prefix {
             "INFO" => log_prefix.green(),
             "ERROR" => log_prefix.bright_red(),
-            "WARNING" => log_prefix.yellow(),
+            "WARN" => log_prefix.yellow(),
             "DEBUG" => log_prefix.blue(),
             _ => log_prefix.normal(),
         }
@@ -90,13 +101,22 @@ impl Logger {
         if !log_origin.is_empty() {
             origin = " [".to_string();
             origin.push_str(&log_origin.bright_white().to_string());
-            origin.push_str("]");
+            origin.push(']');
         } else {
             origin = log_origin;
         }
 
+        colored_log_prefix = "[".to_owned().add(&colored_log_prefix);
+        colored_log_prefix.push(']');
+
+        if insert_whitespaces > 0 {
+            for _ in 0..insert_whitespaces {
+                colored_log_prefix.push(' ');
+            }
+        }
+
         let log_msg = format!(
-            "[{date}{time}] [{prefix}]{log_origin}: {message}",
+            "[{date}{time}] {prefix}{log_origin}: {message}",
             date = date,
             time = time,
             prefix = colored_log_prefix,
@@ -113,7 +133,7 @@ impl Logger {
     {
         use LoggingLevel::*;
 
-        let msg = self.get_log_msg("INFO", msg, log_origin);
+        let msg = self.get_log_msg("INFO", msg, log_origin, 1);
 
         match self.log_level {
             Full | Info => {
@@ -129,10 +149,10 @@ impl Logger {
     {
         use LoggingLevel::*;
 
-        let msg = self.get_log_msg("WARNING", msg, log_origin);
+        let msg = self.get_log_msg("WARN", msg, log_origin, 1);
 
         match self.log_level {
-            Full | Info | Warning => {
+            Full | Warning | Error => {
                 println!("{}", msg);
             }
             _ => return,
@@ -143,9 +163,16 @@ impl Logger {
     where
         T: Into<String>,
     {
-        let msg = self.get_log_msg("ERROR", msg, log_origin);
+        use LoggingLevel::*;
 
-        println!("{}", msg);
+        let msg = self.get_log_msg("ERROR", msg, log_origin, 0);
+
+        match self.log_level {
+            Full | Error => {
+                println!("{}", msg);
+            }
+            _ => return,
+        };
     }
 
     fn log_debug<T>(&self, msg: T, log_origin: String)
@@ -154,7 +181,7 @@ impl Logger {
     {
         use LoggingLevel::*;
 
-        let msg = self.get_log_msg("DEBUG", msg, log_origin);
+        let msg = self.get_log_msg("DEBUG", msg, log_origin, 0);
 
         match self.log_level {
             Full => {
